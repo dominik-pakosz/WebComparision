@@ -1,0 +1,16 @@
+services:
+    curl.manager:
+      class: AppBundle\Service\CurlManager
+
+    websites.checker:
+      class: AppBundle\Service\WebsitesChecker
+      arguments: ["@curl.manager"]
+
+    websites.comparator:
+      class: AppBundle\Service\WebsitesComparator
+      arguments: ["@curl.manager", "@logger", @dummy.message_api]
+      tags:
+        - { name: monolog.logger, channel: webcomparision }
+
+    dummy.message_api:
+      class: AppBundle\Service\DummyMessageApi

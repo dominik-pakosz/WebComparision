@@ -13,11 +13,16 @@ web_profiler:
 
 monolog:
     handlers:
+        webcomparision:
+            type: stream
+            path: '%kernel.logs_dir%/log.txt'
+            level: debug
+            channels: [webcomparision]
         main:
             type: stream
             path: '%kernel.logs_dir%/%kernel.environment%.log'
             level: debug
-            channels: ['!event']
+            channels: ['!event', '!webcomparision']
         console:
             type: console
             process_psr_3_messages: false
