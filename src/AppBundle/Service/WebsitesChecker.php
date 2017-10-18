@@ -17,7 +17,7 @@ class WebsitesChecker
         $this->curlManager = $curlManager;
     }
 
-    public function check(array $websites)
+    public function check(array $websites): void
     {
         $this->checkWebsitesNumber($websites);
         $this->checkWebsitesStatuses($websites);
