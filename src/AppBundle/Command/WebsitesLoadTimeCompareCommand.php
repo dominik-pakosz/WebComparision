@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AppBundle\Command;
 
 use AppBundle\Exception\InvalidNumberOfWebsitesException;
@@ -29,21 +31,22 @@ class WebsitesLoadTimeCompareCommand extends ContainerAwareCommand
     {
         $websites = $input->getArgument(self::WEBSITE_ARGUMENT);
 
+        //on prod try...catch will be needed. In dev env not really so I will just trow same exceptions
         try
         {
             $this->getContainer()->get('websites.checker')->check($websites);
         }catch (InvalidNumberOfWebsitesException $exception)
         {
-            //message: Więcej niż 1!
+            throw new InvalidNumberOfWebsitesException();
         }catch (WebsiteDidNotRespondException $exception)
         {
-            //$exception->getMessage();//url
-            //$exception->getCode();//kod błędu
+            throw new WebsiteDidNotRespondException($exception->getMessage(), $exception->getCode());
         }
 
         $websiteComparator = $this->getContainer()->get('websites.comparator');
         $websiteComparator->compare($websites);
-        $result = $websiteComparator->prepareReport();
+        $result = $websiteComparator->getReport();
 
+        $output->writeln($result);
     }
 }

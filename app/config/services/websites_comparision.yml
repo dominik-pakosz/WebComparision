@@ -8,7 +8,7 @@ services:
 
     websites.comparator:
       class: AppBundle\Service\WebsitesComparator
-      arguments: ["@curl.manager", "@logger", @dummy.message_api]
+      arguments: ["@curl.manager", "@logger", "@dummy.message_api", "@swiftmailer.mailer"]
       tags:
         - { name: monolog.logger, channel: webcomparision }
 

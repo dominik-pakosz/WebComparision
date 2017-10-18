@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AppBundle\Service;
 
 use Monolog\Logger;
@@ -15,17 +17,24 @@ class WebsitesComparator
     /** @var DummyMessageApi */
     private $messageApi;
 
+    /** @var \Swift_Mailer */
+    private $mailer;
+
     /** @var array */
     private $loadTimes;
 
     /** @var string */
     private $mainWebsite;
 
-    public function __construct(CurlManager $curlManager, Logger $logger, DummyMessageApi $dummyMessageApi)
+    /** @var string|null */
+    private $report = null;
+
+    public function __construct(CurlManager $curlManager, Logger $logger, DummyMessageApi $dummyMessageApi, \Swift_Mailer $mailer)
     {
         $this->curlManager = $curlManager;
         $this->logger      = $logger;
         $this->messageApi  = $dummyMessageApi;
+        $this->mailer      = $mailer;
     }
 
     public function compare(array $websites)
@@ -36,25 +45,40 @@ class WebsitesComparator
         asort($this->loadTimes);
 
         $i = 0;
-        $prevTime = null;
+        $fastestTime = 0.00;
+        $mainWebsiteTime = null;
+
         foreach ($this->loadTimes as $website => $time)
         {
             if ($i !== 0 && $website === $this->mainWebsite)
             {
                 //sendEmail
+                $this->sendEmail();
 
-                if ($prevTime <= $time/2)
-                {
-                    $this->messageApi->sendMessage('Your site was twice slower!', '123456789');
-                }
+                $mainWebsiteTime = $time;
             }
+
+            if ($fastestTime > $time && $website !== $this->mainWebsite)
+            {
+                $fastestTime = $time;
+            }
+
             $i++;
-            $prevTime = $time;
+        }
+
+        if ($mainWebsiteTime !== null && $fastestTime >= $mainWebsiteTime/2)
+        {
+               $this->messageApi->sendMessage('Your site was twice slower than fastest one!', '876123441');
         }
     }
 
-    public function prepareReport(): string
+    public function getReport(): string
     {
+        if ($this->report !== null)
+        {
+            return $this->report;
+        }
+
         $i                = 0;
         $textResultHeader = 'FACT: ';
         $textResultBody   = '| REPORT: ';
@@ -78,8 +102,27 @@ class WebsitesComparator
             $i++;
         }
 
-        //log it to log.txt then return text for command
-        $this->logger->info($textResultHeader.$textResultBody);
-        return $textResultHeader.$textResultBody;
+        $this->report = $textResultHeader.$textResultBody;
+        $this->logResult($this->report);
+        return $this->report;
+    }
+
+    private function sendEmail()
+    {
+        $report = $this->getReport();
+        $message = (new \Swift_Message('Your site was slower!'))
+            ->setFrom('dpakoo906@gmail.com')
+            //->setTo('recipient@example.com') definied in config_dev.yml
+            ->setBody(
+                $report
+            )
+        ;
+        $this->mailer->send($message);
+    }
+
+    private function logResult(string $result)
+    {
+        //log it to log.txt
+        $this->logger->info($result);
     }
 }
